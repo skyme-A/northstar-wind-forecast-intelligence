@@ -380,8 +380,8 @@ function App() {
                   key={item.label}
                   onClick={() => navigateTo(item.section)}
                   className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 ${index === 0
-                      ? 'border-blue-100 bg-gradient-to-r from-blue-50 to-white font-semibold text-blue-700 shadow-md shadow-blue-100/70'
-                      : 'border-transparent text-slate-500 hover:border-white hover:bg-white/70 hover:text-slate-800'
+                    ? 'border-blue-100 bg-gradient-to-r from-blue-50 to-white font-semibold text-blue-700 shadow-md shadow-blue-100/70'
+                    : 'border-transparent text-slate-500 hover:border-white hover:bg-white/70 hover:text-slate-800'
                     }`}
                 >
                   <Icon size={18} />
@@ -522,8 +522,8 @@ function App() {
                 onClick={() => void loadData('live')}
                 disabled={loading || startDate > endDate}
                 className={`rounded-xl px-4 py-3 text-xs font-bold transition hover:-translate-y-0.5 disabled:opacity-50 ${mode === 'live'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                    : 'border border-slate-200 bg-white/80 text-slate-600 hover:border-blue-200'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                  : 'border border-slate-200 bg-white/80 text-slate-600 hover:border-blue-200'
                   }`}
               >
                 {loading ? 'Loading…' : 'Run live analysis'}
@@ -533,8 +533,8 @@ function App() {
                 onClick={() => void loadData('demo')}
                 disabled={loading}
                 className={`rounded-xl px-4 py-3 text-xs font-bold transition hover:-translate-y-0.5 disabled:opacity-50 ${mode === 'demo'
-                    ? 'bg-gradient-to-r from-[#FFB38A] to-[#FF9C88] text-[#653D30] shadow-lg shadow-orange-100'
-                    : 'border border-slate-200 bg-white/80 text-slate-600'
+                  ? 'bg-gradient-to-r from-[#FFB38A] to-[#FF9C88] text-[#653D30] shadow-lg shadow-orange-100'
+                  : 'border border-slate-200 bg-white/80 text-slate-600'
                   }`}
               >
                 Demo data
@@ -568,14 +568,14 @@ function App() {
               {/* Data provenance */}
               <div
                 className={`mb-5 flex items-center gap-3 rounded-2xl border p-4 backdrop-blur-xl ${mode === 'demo'
-                    ? 'border-orange-200 bg-orange-50/90'
-                    : 'border-emerald-200 bg-emerald-50/90'
+                  ? 'border-orange-200 bg-orange-50/90'
+                  : 'border-emerald-200 bg-emerald-50/90'
                   }`}
               >
                 <div
                   className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${mode === 'demo'
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-emerald-100 text-emerald-700'
+                    ? 'bg-orange-100 text-orange-600'
+                    : 'bg-emerald-100 text-emerald-700'
                     }`}
                 >
                   {mode === 'demo' ? (
@@ -782,8 +782,8 @@ function App() {
                             color: '#64748b',
                             marginBottom: 6,
                           }}
-                          formatter={(value: number | undefined, name: string | undefined) => [
-                            `${formatNumber(value)} MW`,
+                          formatter={(value, name) => [
+                            `${formatNumber(Number(value))} MW`,
                             name === 'forecast' ? 'Forecast' : 'Actual generation',
                           ]}
                         />
@@ -881,8 +881,8 @@ function App() {
                             border: '1px solid #e3eaf7',
                             fontSize: 11,
                           }}
-                          formatter={(value: number | undefined) => [
-                            `${formatNumber(value)} MW`,
+                          formatter={(value) => [
+                            `${formatNumber(Number(value))} MW`,
                             'Forecast error',
                           ]}
                         />
@@ -1006,8 +1006,8 @@ function App() {
 
                           <td
                             className={`px-5 py-4 text-xs font-bold ${point.error > 0
-                                ? 'text-orange-600'
-                                : 'text-violet-600'
+                              ? 'text-orange-600'
+                              : 'text-violet-600'
                               }`}
                           >
                             {point.error > 0 ? '+' : ''}
@@ -1017,8 +1017,8 @@ function App() {
                           <td className="px-5 py-4">
                             <span
                               className={`rounded-full px-2.5 py-1.5 text-[9px] font-bold ${Math.abs(point.error) < 300
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-orange-100 text-orange-700'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-orange-100 text-orange-700'
                                 }`}
                             >
                               {Math.abs(point.error) < 300
