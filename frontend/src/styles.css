@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    font-family: 'DM Sans', sans-serif;
+    color: #20304a;
+    background: #f4f7ff;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+    outline: 3px solid rgba(36, 123, 253, .35);
+    outline-offset: 3px;
+}
+
+::selection {
+    background: #c9dcff;
+    color: #20304a;
+}
+
+.glass {
+    background: rgba(255, 255, 255, .72);
+    border: 1px solid rgba(255, 255, 255, .92);
+    box-shadow: 0 18px 55px rgba(43, 74, 125, .09), inset 0 1px rgba(255, 255, 255, .9);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+.glass-blue {
+    background: linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(227, 238, 255, .7));
+    border: 1px solid rgba(255, 255, 255, .95);
+    box-shadow: 0 16px 40px rgba(36, 123, 253, .08);
+    backdrop-filter: blur(22px);
+}
+
+.chart-tooltip {
+    border: 1px solid #e3eaf7;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .96);
+    padding: 12px 14px;
+    box-shadow: 0 10px 35px rgba(32, 48, 74, .12);
+    font-size: 12px;
+}

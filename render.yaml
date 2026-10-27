@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: wind-forecast-intelligence-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: CORS_ORIGINS
+        value: http://localhost:5173
