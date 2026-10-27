@@ -62,9 +62,29 @@ type Analysis = {
   notice?: string
 }
 
-const API = (
-  import.meta.env.VITE_API_URL || 'http://localhost:8000'
-).replace(/\/$/, '')
+const API = String(import.meta.env.VITE_API_URL || 'http://localhost:8000').trim().replace(/\/+$/, '')
+
+function createDemoData(startDate: string, endDate: string): Analysis {
+  const points: Point[] = []
+  const start = new Date(`${startDate}T00:00:00Z`).getTime()
+  const end = new Date(`${endDate}T23:30:00Z`).getTime()
+  for (let t = start, i = 0; t <= end && i < 1500; t += 1800000, i++) {
+    const actual = Math.max(900, Math.round(10500 + Math.sin(i * Math.PI / 24) * 3000 + Math.sin(i * .11) * 500))
+    const forecast = Math.max(0, actual + Math.round(Math.sin(i * .73) * 400))
+    points.push({ startTime: new Date(t).toISOString(), publishTime: new Date(t - 3600000).toISOString(), forecast, actual, error: forecast - actual, absoluteError: Math.abs(forecast - actual) })
+  }
+  const avg = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
+  const errors = points.map(p => p.error)
+  const abs = points.map(p => p.absoluteError)
+  return {
+    period: { startDate, endDate },
+    selectionPolicy: 'Illustrative synthetic data',
+    dataCounts: { actualRecords: points.length, forecastRecords: points.length, matchedIntervals: points.length },
+    metrics: { mae: avg(abs), bias: avg(errors), rmse: points.length ? Math.sqrt(errors.reduce((s, e) => s + e * e, 0) / points.length) : null, count: points.length },
+    points,
+    notice: 'Illustrative synthetic values only; these are not observed Elexon data.',
+  }
+}
 
 const formatNumber = (
   value: number | null | undefined,
@@ -119,36 +139,23 @@ function App() {
   async function loadData(nextMode: 'live' | 'demo' = mode) {
     setLoading(true)
     setError('')
-
     try {
-      const endpoint =
-        nextMode === 'demo'
-          ? `${API}/api/demo`
-          : `${API}/api/analysis?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`
-
+      if (nextMode === 'demo') {
+        setData(createDemoData(startDate, endDate))
+        setMode('demo')
+        setSelectedDay('all')
+        return
+      }
+      const endpoint = `${API}/api/analysis?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`
       const response = await fetch(endpoint)
-
-      if (!response.ok) {
-        throw new Error(
-          `The API returned HTTP ${response.status}. Check that the backend is running.`,
-        )
-      }
-
+      if (!response.ok) throw new Error(`The API returned HTTP ${response.status}. Check that the backend is running.`)
       const result = (await response.json()) as Analysis
-
-      if (!Array.isArray(result.points) || !result.metrics) {
-        throw new Error('The API response has an unexpected format.')
-      }
-
+      if (!Array.isArray(result.points) || !result.metrics || !result.dataCounts) throw new Error('The API response has an unexpected format.')
       setData(result)
-      setMode(nextMode)
+      setMode('live')
       setSelectedDay('all')
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to load analysis data.',
-      )
+      setError(err instanceof Error ? err.message : 'Unable to load analysis data.')
     } finally {
       setLoading(false)
     }
