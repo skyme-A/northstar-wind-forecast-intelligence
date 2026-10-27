@@ -62,7 +62,7 @@ type Analysis = {
   notice?: string
 }
 
-const API = String(import.meta.env.VITE_API_URL || 'http://localhost:8000').trim().replace(/\/+$/, '')
+const API = String(import.meta.env.VITE_API_URL || 'https://northstar-wind-forecast-intelligence.onrender.com').trim().replace(/\/+$/, '')
 
 function createDemoData(startDate: string, endDate: string): Analysis {
   const points: Point[] = []
