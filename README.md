@@ -1,23 +1,63 @@
-# Wind Forecast Intelligence
+# Northstar — Wind Forecast Intelligence
 
-A full-stack prototype for evaluating UK national wind-generation forecasts against actual generation using Elexon BMRS data.
+A full-stack prototype for evaluating UK national wind-generation forecasts against actual generation using data from Elexon BMRS. The dashboard helps users inspect forecast performance, quantify error, and compare matched delivery intervals for January 2026.
 
-## What it does
-- React + TypeScript dashboard with KPI cards, forecast-versus-actual chart, interval error chart, interval table, and CSV export.
-- Python + FastAPI backend with health, demo, and analysis endpoints.
-- Uses Elexon `FUELHH` records for actual generation filtered to `fuelType == WIND`, and `WINDFOR` forecast publications.
-- Calculates MAE, RMSE, and signed bias only for intervals with both an eligible forecast and actual.
-- Demo mode is explicitly labelled as synthetic/illustrative; it is not Elexon data.
+## Live application
 
-## Analytical assumption
-The assignment does not define the exact day-ahead trading cutoff. The default is configurable and selects the latest forecast published by **10:00 UTC on the previous UTC calendar day** for each delivery interval. This is an evaluation assumption, not a confirmed client rule.
+- **Frontend:** https://northstar-wind-forecast-intelligenc.vercel.app/
+- **Backend API:** https://northstar-wind-forecast-intelligence.onrender.com
+- **Health check:** https://northstar-wind-forecast-intelligence.onrender.com/api/health
+- **Interactive API documentation:** https://northstar-wind-forecast-intelligence.onrender.com/docs
+- **Source repository:** https://github.com/skyme-A/northstar-wind-forecast-intelligence
 
-For `WINDFOR`, delivery intervals are reconstructed from `settlementDate` and `settlementPeriod` (48 half-hour periods per UTC day), with `startTime` used only as a fallback. Forecast vintages are filtered by `publishTime`, and only intervals with an actual and eligible forecast contribute to metrics. Elexon API schemas or availability may change; verify the live API response and matched interval count before interpreting results.
+> The live app uses Elexon data when the backend and upstream API are available. Demo mode uses synthetic illustrative values; these are not observed Elexon data.
 
-## Run locally (Windows PowerShell)
-Requirements: Python 3.11+ and Node.js 20+. Docker is optional.
+## What the application does
 
-### Backend — terminal 1
+- Displays forecast-versus-actual wind generation and matched delivery intervals.
+- Summarizes forecast error using mean absolute error (MAE), root mean squared error (RMSE), and signed forecast bias.
+- Provides interval-level analysis, date filtering, and CSV export.
+- Offers an explicitly labelled synthetic demo mode so the dashboard can be explored when live data is unavailable.
+- Exposes a Python FastAPI service with health, demo, and live-analysis endpoints.
+
+## Data sources and evaluation assumption
+
+The assignment scope is UK national wind generation from Elexon BMRS only:
+
+- **Actual generation:** `FUELHH` dataset, filtered to `fuelType == "WIND"`. The `startTime` field identifies the delivery interval and `generation` is the generation value.
+- **Forecast generation:** `WINDFOR` dataset. Forecast publication time is taken from `publishTime`; generation values are matched to delivery intervals.
+
+Elexon documentation:
+- [FUELHH stream endpoint](https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/FUELHH/stream)
+- [WINDFOR stream endpoint](https://bmrs.elexon.co.uk/api-documentation/endpoint/datasets/WINDFOR/stream)
+
+The assignment does not specify the precise day-ahead forecast cutoff. This prototype uses the latest forecast published by **10:00 UTC on the preceding UTC calendar day** for each delivery interval. This is an explicit evaluation assumption, not a confirmed client trading rule. The cutoff can be supplied through the `cutoff_hour_utc` analysis query parameter (0–23).
+
+Only intervals with both an eligible forecast and an actual contribute to the accuracy metrics. Confirm the matched interval count and the source interval convention before interpreting results operationally.
+
+## Technology stack
+
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Recharts, Lucide icons
+- **Backend:** Python, FastAPI, Uvicorn, HTTPX
+- **Data:** Elexon BMRS API
+- **Deployment:** Vercel frontend and Render backend
+- **Containerization:** Docker and Docker Compose
+
+## Run locally
+
+Requirements:
+- Python 3.11 or newer
+- Node.js 20 or newer
+- npm
+- Docker Desktop (optional, for container-based startup)
+
+### Option A — Run with separate terminals
+
+#### 1. Start the backend
+
+From the repository root:
+
+**Windows PowerShell**
 ```powershell
 cd backend
 python -m venv .venv
@@ -25,70 +65,181 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 python -m uvicorn main:app --reload
 ```
-If PowerShell blocks activation, use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in that terminal and activate again. Or skip the virtual environment activation and run `python -m pip install -r requirements.txt`.
 
-Check: <http://localhost:8000/api/health>  
-Interactive API docs: <http://localhost:8000/docs>  
-Demo data: <http://localhost:8000/api/demo>  
-January analysis: <http://localhost:8000/api/analysis?start_date=2026-01-01&end_date=2026-01-31&cutoff_hour_utc=10>
+**macOS/Linux**
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --reload
+```
 
-### Frontend — terminal 2
-```powershell
+Backend URLs:
+- Health: http://localhost:8000/api/health
+- API docs: http://localhost:8000/docs
+- Demo data: http://localhost:8000/api/demo
+- January 2026 analysis: http://localhost:8000/api/analysis?start_date=2026-01-01&end_date=2026-01-31&cutoff_hour_utc=10
+
+#### 2. Start the frontend
+
+Open a second terminal from the repository root:
+
+```bash
 cd frontend
 npm install
+```
+
+Create `frontend/.env.local` with the following value for local development:
+
+```dotenv
+VITE_API_URL=http://localhost:8000
+```
+
+Then run:
+
+```bash
 npm run dev
 ```
-Open <http://localhost:5173>. Use **Demo data** to verify the dashboard independently of the external API, then try **Run live analysis**. A live response with `matchedIntervals: 0` is not a successful validation; inspect the API response and backend terminal logs.
 
-### Tests and production build
-```powershell
-cd backend
-python -m pytest
-cd ..\frontend
+Open http://localhost:5173.
+
+Use **Demo data** to inspect the UI without relying on live data, then choose a date range and select **Run live analysis** to request the backend. Do not treat synthetic demo values as actual Elexon observations.
+
+### Option B — Run with Docker Compose
+
+From the repository root, with Docker Desktop running:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+- Frontend: http://localhost:5173
+- Backend health: http://localhost:8000/api/health
+- API docs: http://localhost:8000/docs
+
+Stop the services with:
+
+```bash
+docker compose down
+```
+
+The Compose frontend runs the Vite development server; it is intended for local development.
+
+## API endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Backend health check |
+| GET | `/api/demo` | Synthetic illustrative demo data |
+| GET | `/api/analysis?start_date=2026-01-01&end_date=2026-01-31&cutoff_hour_utc=10` | Fetches Elexon data and evaluates matched forecast/actual intervals |
+
+Analysis parameters:
+- `start_date`: first delivery date in `YYYY-MM-DD` format.
+- `end_date`: last delivery date in `YYYY-MM-DD` format.
+- `cutoff_hour_utc`: publication cutoff hour, from 0 to 23; defaults to 10.
+
+## Configuration
+
+### Frontend
+
+Set `VITE_API_URL` to the backend base URL, without a trailing slash.
+
+- Local: `http://localhost:8000`
+- Production: `https://northstar-wind-forecast-intelligence.onrender.com`
+
+For Vite, environment variables are read at build time. Redeploy the frontend after changing the Vercel environment variable.
+
+### Backend
+
+Set `CORS_ORIGINS` to a comma-separated list of permitted frontend origins. For the production deployment, include:
+
+```text
+https://northstar-wind-forecast-intelligenc.vercel.app
+```
+
+For local development, the backend defaults to allowing `http://localhost:5173` and `http://127.0.0.1:5173`. Update the Render environment variable when the deployed frontend origin changes.
+
+## Deployments
+
+This project is deployed as a split frontend/backend application.
+
+### Render backend
+
+- Root directory: `backend`
+- Runtime: Docker
+- Dockerfile: `backend/Dockerfile`
+- Port: `8000`
+- Environment variable: `CORS_ORIGINS` set to the exact Vercel origin
+
+After deployment, verify `/api/health` and `/docs`.
+
+### Vercel frontend
+
+- Root directory: `frontend`
+- Framework preset: Vite
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variable: `VITE_API_URL=https://northstar-wind-forecast-intelligence.onrender.com`
+
+Redeploy the frontend after changing environment variables. Verify both demo mode and live analysis from the deployed site.
+
+## Validation
+
+Frontend production build:
+
+```bash
+cd frontend
+npm ci
 npm run build
 ```
 
-## API
-- `GET /api/health` — health check.
-- `GET /api/demo` — clearly labelled synthetic demo data.
-- `GET /api/analysis?start_date=2026-01-01&end_date=2026-01-31&cutoff_hour_utc=10` — fetches Elexon records and calculates metrics. `cutoff_hour_utc` accepts 0–23.
+Backend tests:
 
-## Deploy (recommended split: Render backend + Vercel frontend)
-1. Push this repository to a **public GitHub repository** with a neutral/anonymous repository name, as requested by the assignment. Do not include secrets or personal data.
-2. **Backend on Render:** create a new Web Service from the GitHub repository. Set the root directory to `backend`, choose Docker as the runtime, and use `backend/Dockerfile`. Add environment variable `CORS_ORIGINS` with the deployed Vercel origin, e.g. `https://your-project.vercel.app` (comma-separated if multiple). Render should use the Dockerfile's port 8000. After deployment verify `/api/health` and `/docs`.
-3. **Frontend on Vercel:** import the same GitHub repo, set Root Directory to `frontend`, Framework Preset to Vite, Build Command `npm run build`, Output Directory `dist`. Add environment variable `VITE_API_URL` equal to the Render backend base URL, with no trailing slash (for example `https://your-backend.onrender.com`). Redeploy after setting it.
-4. Update Render's `CORS_ORIGINS` to the exact Vercel production origin, then redeploy the backend. Verify the frontend loads and both Demo data and live analysis buttons behave as expected.
-5. Put the deployed frontend URL and the GitHub URL in this README before final submission.
+```bash
+cd backend
+python -m pip install -r requirements.txt
+python -m pytest
+```
 
-A free backend instance may sleep or cold-start. Live Elexon analysis may take time because the API is queried by publication day. Demo mode is the reliable presentation path if the external source is unavailable; be explicit about that in the video.
-
-## AI assistance disclosure
-AI tools were used to help develop and debug parts of this prototype. All data-source assumptions, calculations, and final behaviour should be reviewed and verified before operational use.
-
-## Submission links
-- Live app: TODO — add deployed Vercel URL
-- Public source repository: TODO — add GitHub URL
-- Demo video (unlisted YouTube, maximum 10 minutes): TODO — add URL
+A successful health check confirms that the backend responds; it does not by itself verify CORS, upstream Elexon availability, or successful data matching. For live validation, run an analysis request and inspect the response and matched interval count.
 
 ## Project structure
+
 ```text
-wind-forecast-intelligence/
+northstar-wind-forecast-intelligence/
 ├── backend/
-│   ├── main.py
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── test_metrics.py
+│   ├── main.py              # FastAPI routes and Elexon data processing
+│   ├── requirements.txt     # Python dependencies
+│   ├── Dockerfile           # Backend container image
+│   └── test_metrics.py      # Backend metric tests
 ├── frontend/
-│   ├── src/App.tsx
-│   ├── src/styles.css
-│   ├── src/main.tsx
+│   ├── src/
+│   │   ├── App.tsx          # Dashboard and analysis interactions
+│   │   ├── styles.css       # Global styles
+│   │   └── main.tsx         # React entry point
 │   ├── package.json
 │   ├── index.html
 │   └── vite.config.ts
-├── docker-compose.yml
-├── render.yaml
-├── vercel.json
+├── docker-compose.yml       # Local multi-service development
+├── render.yaml              # Render deployment configuration
+├── vercel.json              # Vercel configuration
 ├── README.md
 ├── SUBMISSION_CHECKLIST.md
 └── VIDEO_SCRIPT.md
 ```
+
+## AI assistance disclosure
+
+AI tools (including ChatGPT) were used to assist with implementation, documentation, and debugging. The data-source assumptions and calculated results should be reviewed before any operational or trading use.
+
+## Challenge submission checklist
+
+- [ ] Record an unlisted YouTube demo video, maximum 10 minutes total:
+  - Part 1 — customer-facing product overview (up to 5 minutes).
+  - Part 2 — technical architecture, implementation, analysis, and development practices (up to 5 minutes).
+- [ ] Open the deployed app, public GitHub repository, and unlisted video in an incognito window to verify access.
+- [ ] Submit the required links in the challenge submission form.
+
+The demo video is a required deliverable for the challenge; do not submit without it.
