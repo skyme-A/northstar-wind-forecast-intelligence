@@ -324,7 +324,7 @@ function App() {
       title: 'Matched intervals',
       value: formatNumber(points.length),
       unit: 'intervals',
-      description: 'Matched half-hourly records',
+      description: 'Matched delivery intervals',
       icon: Database,
       theme: 'bg-violet-100 text-violet-700',
       glow: 'from-violet-200/60',
