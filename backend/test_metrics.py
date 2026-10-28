@@ -47,3 +47,33 @@ def test_actual_settlement_period_maps_to_half_hour_delivery():
         },
     ], date(2026, 1, 1), date(2026, 1, 31))
     assert list(result.keys()) == ["2026-01-01T00:30:00+00:00"]
+
+
+def test_hourly_forecasts_expand_to_half_hourly_delivery_times():
+    from datetime import datetime, timezone
+    from main import expand_hourly_forecasts_to_half_hourly
+
+    forecasts = [
+        {
+            "start": datetime(2026, 1, 1, 0, 0, tzinfo=timezone.utc),
+            "published": datetime(2025, 12, 31, 9, 30, tzinfo=timezone.utc),
+            "forecast": 100.0,
+        },
+        {
+            "start": datetime(2026, 1, 1, 1, 0, tzinfo=timezone.utc),
+            "published": datetime(2025, 12, 31, 9, 30, tzinfo=timezone.utc),
+            "forecast": 120.0,
+        },
+    ]
+
+    expanded, source_interval = expand_hourly_forecasts_to_half_hourly(forecasts)
+
+    assert source_interval == 60
+    assert len(expanded) == 4
+    assert [item["start"].isoformat() for item in expanded] == [
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-01T00:30:00+00:00",
+        "2026-01-01T01:00:00+00:00",
+        "2026-01-01T01:30:00+00:00",
+    ]
+    assert [item["forecast"] for item in expanded] == [100.0, 100.0, 120.0, 120.0]
