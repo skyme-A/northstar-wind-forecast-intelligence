@@ -33,3 +33,17 @@ def test_forecast_needs_publish_and_delivery_time():
 def test_settlement_period_maps_to_utc_delivery_interval():
     result = forecast_delivery_time({"settlementDate": "2026-01-01", "settlementPeriod": 2})
     assert result.isoformat() == "2026-01-01T00:30:00+00:00"
+
+
+
+def test_actual_settlement_period_maps_to_half_hour_delivery():
+    result = normalize_actuals([
+        {
+            "fuelType": "WIND",
+            "settlementDate": "2026-01-01",
+            "settlementPeriod": 2,
+            "startTime": "2026-01-01T00:00:00Z",
+            "generation": 12,
+        },
+    ], date(2026, 1, 1), date(2026, 1, 31))
+    assert list(result.keys()) == ["2026-01-01T00:30:00+00:00"]
