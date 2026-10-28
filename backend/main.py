@@ -186,7 +186,7 @@ def normalize_actuals(
         if str(row.get("fuelType", "")).strip().upper() != "WIND":
             continue
 
-        delivery = parse_time(row.get("startTime"))
+        delivery = forecast_delivery_time(row)
         generation = value_number(row)
 
         if delivery is None or generation is None:
