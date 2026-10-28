@@ -141,6 +141,60 @@ async def fetch_publish_day(
     return records
 
 
+async def fetch_actuals_day(
+    client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
+    delivery_day: date,
+) -> list[dict[str, Any]]:
+    """
+    Fetch FUELHH by settlement date, which is the delivery date.
+
+    FUELHH is a half-hourly outturn dataset. Filtering it by publication
+    timestamps can omit valid settlement periods, so use the dataset endpoint
+    and its settlement-date filters instead of the generic stream helper.
+    """
+    url = f"{BASE_URL}/datasets/FUELHH"
+
+    async with semaphore:
+        response = await client.get(
+            url,
+            params={
+                "settlementDateFrom": delivery_day.isoformat(),
+                "settlementDateTo": delivery_day.isoformat(),
+            },
+        )
+        response.raise_for_status()
+
+    records = extract_records(response.json())
+    print(
+        f"[Elexon FUELHH] settlement_date={delivery_day.isoformat()} "
+        f"status={response.status_code} records={len(records)}"
+    )
+    return records
+
+
+async def fetch_actuals_range(
+    client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
+    start: date,
+    end: date,
+) -> list[dict[str, Any]]:
+    """Fetch actual FUELHH outturn records by delivery/settlement date."""
+    days = []
+    current = start
+    while current <= end:
+        days.append(current)
+        current += timedelta(days=1)
+
+    batches = await asyncio.gather(
+        *[
+            fetch_actuals_day(client, semaphore, delivery_day)
+            for delivery_day in days
+        ]
+    )
+    return [row for batch in batches for row in batch]
+
+
 async def fetch_publish_range(
     client: httpx.AsyncClient,
     semaphore: asyncio.Semaphore,
@@ -447,10 +501,9 @@ async def analysis(
             follow_redirects=True,
         ) as client:
             actual_rows, forecast_rows = await asyncio.gather(
-                fetch_publish_range(
+                fetch_actuals_range(
                     client,
                     semaphore,
-                    "FUELHH",
                     start_date,
                     end_date,
                 ),
