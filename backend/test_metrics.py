@@ -1,5 +1,5 @@
 from datetime import date
-from main import calculate_metrics, normalize_actuals, normalize_forecasts, delivery_time
+from main import calculate_metrics, normalize_actuals, normalize_forecasts, forecast_delivery_time
 
 
 def test_metrics():
@@ -31,5 +31,5 @@ def test_forecast_needs_publish_and_delivery_time():
 
 
 def test_settlement_period_maps_to_utc_delivery_interval():
-    result = delivery_time({"settlementDate": "2026-01-01", "settlementPeriod": 2})
+    result = forecast_delivery_time({"settlementDate": "2026-01-01", "settlementPeriod": 2})
     assert result.isoformat() == "2026-01-01T00:30:00+00:00"
