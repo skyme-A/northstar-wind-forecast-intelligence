@@ -330,6 +330,56 @@ def normalize_forecasts(
     return forecasts
 
 
+def expand_hourly_forecasts_to_half_hourly(
+    forecasts: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int | None]:
+    """
+    Align Elexon's hourly WINDFOR forecast with half-hourly FUELHH outturn.
+
+    WINDFOR is an hourly forecast product. When the supplied forecast delivery
+    timestamps are hourly, carry each hourly forecast value forward to the
+    following half-hour settlement period as a stepwise-constant forecast.
+    This does not create a new forecast observation; it aligns the hourly
+    forecast assumption with the half-hourly actuals and is disclosed in the
+    API response. If the source is already half-hourly, leave it unchanged.
+    """
+    delivery_times = sorted(
+        {
+            item["start"]
+            for item in forecasts
+            if isinstance(item.get("start"), datetime)
+        }
+    )
+    if len(delivery_times) < 2:
+        return forecasts, None
+
+    gaps = [
+        int((current - previous).total_seconds() / 60)
+        for previous, current in zip(delivery_times, delivery_times[1:])
+    ]
+    gaps = [gap for gap in gaps if gap > 0]
+    if not gaps:
+        return forecasts, None
+
+    counts: dict[int, int] = {}
+    for gap in gaps:
+        counts[gap] = counts.get(gap, 0) + 1
+    source_interval = min(counts, key=lambda gap: (-counts[gap], gap))
+
+    if source_interval != 60:
+        return forecasts, source_interval
+
+    expanded = []
+    for item in forecasts:
+        expanded.append(item)
+        delivery = item["start"]
+        half_hour_delivery = delivery + timedelta(minutes=30)
+        if half_hour_delivery.date() == delivery.date():
+            expanded.append({**item, "start": half_hour_delivery})
+
+    return expanded, source_interval
+
+
 def calculate_metrics(points: list[dict[str, Any]]) -> dict[str, Any]:
     """Calculate MAE, RMSE and signed bias in MW."""
     if not points:
@@ -550,6 +600,9 @@ async def analysis(
     forecasts = normalize_forecasts(
         forecast_rows, start_date, end_date
     )
+    forecasts, forecast_source_interval_minutes = (
+        expand_hourly_forecasts_to_half_hourly(forecasts)
+    )
 
     points, selected_count = build_analysis_points(
         actuals,
@@ -612,6 +665,13 @@ async def analysis(
         ),
         "intervalMinutes": interval_minutes,
         "intervalLabel": interval_label,
+        "forecastSourceIntervalMinutes": forecast_source_interval_minutes,
+        "forecastAlignment": (
+            "Hourly WINDFOR values carried forward to the second half-hour "
+            "of each hour to align with half-hourly FUELHH actuals."
+            if forecast_source_interval_minutes == 60
+            else "Forecast timestamps used at their source resolution."
+        ),
         "dataCounts": {
             "actualRecords": len(actuals),
             "forecastRecords": len(forecasts),
